@@ -1,0 +1,10 @@
+date=20261123-220235
+model=motorola edge 60 stylus
+soc=SM7435
+android=16
+sdk_int=36
+mem_total=MemTotal:        7663100 kB
+llama_commit=1d3aad2
+model_file=Qwen3VL-2B-Instruct-Q4_K_M.gguf
+mmproj_file=mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf
+threads=4

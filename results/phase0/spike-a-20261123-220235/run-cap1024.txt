@@ -1,0 +1,38 @@
+thermal_before: Thermal Status: 0
+0.00.472.934 W load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.02.562.365 I cmn          init: llama threadpool init, n_threads = 4
+0.03.177.414 I mtmd_cli_context: chat template example:
+<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+
+0.03.177.436 I main: loading model: model.gguf
+0.03.177.470 W WARN: This is an experimental CLI for testing multimodal capability.
+0.03.177.470 W       For normal use cases, please use the standard llama-cli
+0.03.318.771 I encoding mtmd batch, n_chunks = 1 (done = 1, total = 3)
+0.46.714.448 I mtmd batch encoding done in 43396 ms
+
+```json
+[
+	{"label": "Alarms", "x": 124, "y": 79},
+	{"label": "OK", "x": 900, "y": 225},
+	{"label": "Mon-Fri", "x": 164, "y": 165},
+	{"label": "8:30 am", "x": 164, "y": 235},
+	{"label": "Sun Sat", "x": 164, "y": 345},
+	{"label": "9:00 am", "x": 164, "y": 415},
+	{"label": "Stopwatch", "x": 698, "y": 934},
+	{"label": "Bedtime", "x": 899, "y": 934},
+	{"label": "World clock", "x": 300, "y": 934},
+	{"label": "Timers", "x": 499, "y": 934},
+	{"label": "Alarms
+
+PEAK_RSS_KB=3491692
+EXIT_CODE=0
+wall_seconds=86
+thermal_after: Thermal Status: 1

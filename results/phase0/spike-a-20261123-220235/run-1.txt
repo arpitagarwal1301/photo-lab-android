@@ -1,0 +1,35 @@
+thermal_before: Thermal Status: 0
+0.00.484.355 W load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.04.116.892 I cmn          init: llama threadpool init, n_threads = 4
+0.04.401.894 W load_hparams: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks
+0.04.401.911 W load_hparams: if you encounter problems with accuracy, try adding --image-min-tokens 1024
+0.04.401.912 W load_hparams: more info: https://github.com/ggml-org/llama.cpp/issues/16842
+
+0.05.427.779 I mtmd_cli_context: chat template example:
+<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+
+0.05.427.794 I main: loading model: model.gguf
+0.05.427.889 W WARN: This is an experimental CLI for testing multimodal capability.
+0.05.427.890 W       For normal use cases, please use the standard llama-cli
+0.05.695.437 I encoding mtmd batch, n_chunks = 1 (done = 1, total = 3)
+5.25.082.639 I mtmd batch encoding done in 319387 ms
+
+```json
+[
+  {"label": "Alarms", "x": 0, "y": 0},
+  {"label": "Mon-Fri", "x": 165, "y": 165},
+  {"label": "8:30 am", "x": 165, "y": 235},
+  {"label": "Now you can snooze alarms with the volume buttons", "x": 620, "y": 165},
+  {"label": "OK", "x": 900, "y": 2
+
+PEAK_RSS_KB=3689592
+EXIT_CODE=0
+thermal_after: Thermal Status: 1

@@ -1,0 +1,11 @@
+# Planted bugs: "<PreviewName> <rule-id>". Clean previews must produce nothing.
+CartBuggy cart-sum
+CartBuggy unlabelled-clickable
+CartBuggy currency-format
+CheckoutBuggy total-equation
+CheckoutBuggy savings-mismatch
+CheckoutBuggy pay-button-mismatch
+ProductBuggy discount-percent
+ProductBuggy currency-format
+ProductBuggy unlabelled-clickable
+OrderBuggy negative-price

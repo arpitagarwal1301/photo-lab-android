@@ -1,0 +1,28 @@
+tokens	Café déjà-vu, isn't it?!	[CLS] cafe de ##ja - vu , isn ' t it ? ! [SEP]
+vec	Café déjà-vu, isn't it?!	-0.028457 -0.034539 0.076277 0.027902 0.003196 0.037903 0.046535 -0.074609
+tokens	I hate these frames	[CLS] i hate these frames [SEP]
+vec	I hate these frames	0.011739 0.044982 0.007889 -0.070781 0.111314 -0.037049 0.055640 -0.017089
+tokens	I love these frames	[CLS] i love these frames [SEP]
+vec	I love these frames	-0.043810 0.029539 -0.023218 -0.080515 0.032346 -0.039397 0.060053 -0.020150
+tokens	blue round glasses	[CLS] blue round glasses [SEP]
+vec	blue round glasses	-0.021961 0.004524 0.006543 0.021312 -0.023077 -0.055901 0.156023 -0.012527
+tokens	blue round pizza	[CLS] blue round pizza [SEP]
+vec	blue round pizza	-0.102076 0.077534 -0.011235 0.086233 -0.070838 -0.024685 0.093052 0.031182
+tokens	cafe deja vu isnt it	[CLS] cafe de ##ja vu isn ##t it [SEP]
+vec	cafe deja vu isnt it	-0.020180 -0.029288 0.067513 0.022870 0.005219 0.046432 0.055498 -0.060007
+tokens	chashma	[CLS] cha ##sh ##ma [SEP]
+vec	chashma	-0.027770 0.052839 -0.059235 -0.006000 -0.019838 -0.054762 0.159892 -0.003724
+tokens	glasses	[CLS] glasses [SEP]
+vec	glasses	-0.010227 -0.049059 -0.015418 -0.014974 -0.045862 -0.056614 0.197304 0.012367
+tokens	navy circular frames	[CLS] navy circular frames [SEP]
+vec	navy circular frames	0.005736 0.047558 -0.079286 -0.077386 0.036623 -0.026819 -0.054583 0.048449
+tokens	pizza delivery near me	[CLS] pizza delivery near me [SEP]
+vec	pizza delivery near me	-0.001973 0.042684 0.019562 0.033946 -0.048944 -0.042048 0.039033 -0.001595
+tokens	unbelievably photochromic spectacles	[CLS] un ##bel ##ie ##va ##bly photo ##ch ##rom ##ic spectacle ##s [SEP]
+vec	unbelievably photochromic spectacles	-0.082995 0.006696 0.008830 -0.027335 -0.056054 -0.068036 0.133288 0.050797
+pair	blue round glasses	navy circular frames	0.344836
+pair	blue round glasses	blue round pizza	0.582976
+pair	I love these frames	I hate these frames	0.818736
+pair	chashma	glasses	0.224471
+pair	blue round glasses	pizza delivery near me	0.088068
+pair	Café déjà-vu, isn't it?!	cafe deja vu isnt it	0.940305

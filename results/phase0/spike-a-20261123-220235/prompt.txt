@@ -1,0 +1,1 @@
+You are a phone agent. List every tappable element on this screen as JSON: [{"label": "...", "x": 0, "y": 0}]. JSON only.

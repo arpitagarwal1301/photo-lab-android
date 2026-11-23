@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The permission an agent needs to call other apps' AppFunctions.
+         Declared so the OS can grant it if this app holds a qualifying role. -->
+    <uses-permission android:name="android.permission.EXECUTE_APP_FUNCTIONS" />
+
+    <application
+        android:label="Spike B · AppFunctions"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Handling ACTION_ASSIST is what makes the app show up as a candidate
+                 "Digital assistant app" (Assistant role) in Settings > Default apps. -->
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
