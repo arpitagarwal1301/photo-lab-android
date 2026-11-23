@@ -19,9 +19,19 @@ import kotlin.random.Random
  * Knobs: m (links per node), efConstruction (care taken when inserting), ef (care taken when searching).
  * Higher = more accurate, slower. Lesson 4 turns these knobs.
  */
+/** What one search did, step by step — for the "inside this search" screen. */
+class HnswTrace {
+    /** One step: on upper layers the greedy path; on layer 0 the nodes expanded, best-first. */
+    class Hop(val layer: Int, val id: Int, val sim: Float)
+    val hops = ArrayList<Hop>()
+    /** Distinct vectors compared with the query (brute force compares all of them). */
+    val seen = HashSet<Int>()
+    val compared get() = seen.size
+}
+
 class Hnsw(
-    private val m: Int = 16,
-    private val efConstruction: Int = 100,
+    val m: Int = 16,
+    val efConstruction: Int = 100,
     var ef: Int = 64,
     seed: Long = 42,
 ) : VectorIndex {
@@ -67,26 +77,36 @@ class Hnsw(
         if (level > topLayer) { topLayer = level; entry = node }
     }
 
-    override fun search(query: FloatArray, k: Int): List<Hit> {
+    override fun search(query: FloatArray, k: Int): List<Hit> = search(query, k, null)
+
+    fun search(query: FloatArray, k: Int, trace: HnswTrace?): List<Hit> {
         if (entry < 0) return emptyList()
         var cur = entry
-        for (layer in topLayer downTo 1) cur = greedy(query, cur, layer)
-        return searchLayer(query, listOf(cur), max(ef, k), 0).take(k).map { Hit(ids[it.node], it.sim) }
+        for (layer in topLayer downTo 1) cur = greedy(query, cur, layer, trace)
+        return searchLayer(query, listOf(cur), max(ef, k), 0, trace).take(k).map { Hit(ids[it.node], it.sim) }
     }
+
+    val layerCount get() = topLayer + 1
+    fun nodesOnLayer(layer: Int) = links.count { it.size > layer }
+    /** Highest layer this id lives on (0 = only the local streets). */
+    fun levelOf(id: Int): Int = ids.indexOf(id).let { if (it < 0) -1 else links[it].size - 1 }
 
     private class Cand(val node: Int, val sim: Float)
 
     /** Keep hopping to the most similar neighbour until no neighbour is better. */
-    private fun greedy(q: FloatArray, start: Int, layer: Int): Int {
+    private fun greedy(q: FloatArray, start: Int, layer: Int, trace: HnswTrace? = null): Int {
         var best = start
         var bestSim = dot(q, vectors[start])
+        trace?.let { it.seen += start; it.hops += HnswTrace.Hop(layer, ids[best], bestSim) }
         var improved = true
         while (improved) {
             improved = false
             links[best][layer].forEach { nb ->
                 val s = dot(q, vectors[nb])
+                trace?.let { it.seen += nb }
                 if (s > bestSim) { bestSim = s; best = nb; improved = true }
             }
+            if (improved) trace?.let { it.hops += HnswTrace.Hop(layer, ids[best], bestSim) }
         }
         return best
     }
@@ -96,18 +116,20 @@ class Hnsw(
      * frontier = nodes still to expand (most similar first); found = current best ef (least similar on top).
      * Stop when the most promising unexpanded node is worse than the worst one we're keeping.
      */
-    private fun searchLayer(q: FloatArray, entries: List<Int>, ef: Int, layer: Int): List<Cand> {
+    private fun searchLayer(q: FloatArray, entries: List<Int>, ef: Int, layer: Int, trace: HnswTrace? = null): List<Cand> {
         val visited = HashSet<Int>()
         val frontier = PriorityQueue<Cand>(compareByDescending { it.sim })
         val found = PriorityQueue<Cand>(compareBy { it.sim })
-        for (e in entries) if (visited.add(e)) Cand(e, dot(q, vectors[e])).let { frontier += it; found += it }
+        for (e in entries) if (visited.add(e)) Cand(e, dot(q, vectors[e])).let { frontier += it; found += it; trace?.let { t -> t.seen += e } }
         while (found.size > ef) found.poll()
         while (frontier.isNotEmpty()) {
             val c = frontier.poll()
             if (found.size >= ef && c.sim < found.peek().sim) break
+            trace?.let { if (it.hops.size < 200) it.hops += HnswTrace.Hop(layer, ids[c.node], c.sim) }
             links[c.node][layer].forEach { nb ->
                 if (visited.add(nb)) {
                     val s = dot(q, vectors[nb])
+                    trace?.let { it.seen += nb }
                     if (found.size < ef || s > found.peek().sim) {
                         val cand = Cand(nb, s)
                         frontier += cand; found += cand

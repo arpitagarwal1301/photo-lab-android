@@ -58,6 +58,8 @@ fun SearchScreen(state: AppState, ready: AppState.Ready) {
     // Keyed grids keep the old first photo in view when results re-order; always show the new best match.
     LaunchedEffect(results) { grid.scrollToItem(0) }
     var open by remember { mutableStateOf<SearchEngine.Result?>(null) }
+    var journey by remember { mutableStateOf<Pair<String, Long?>?>(null) } // query + photo to follow
+    var inside by remember { mutableStateOf<Long?>(null) }
     val focus = LocalFocusManager.current
     // Re-run when the query changes, and refresh every few hundred photos while indexing.
     val bucket = progress.done / 200
@@ -90,17 +92,24 @@ fun SearchScreen(state: AppState, ready: AppState.Ready) {
                 ((if (weak) "%d closest" else "%d results") + " in %.0f ms  ·  CLIP %.0f  ·  MiniLM %.0f  ·  index %.1f  ·  keywords %.1f").format(results.size, t.total, t.clipMs, t.miniLmMs, t.indexMs, t.bm25Ms),
                 Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            TextButton({ journey = query.trim() to null }, Modifier.padding(horizontal = 4.dp)) { Text("⚗ How did this search work? Step by step ›") }
         }
         LazyVerticalGrid(GridCells.Adaptive(110.dp), Modifier.fillMaxSize().padding(top = 8.dp), state = grid, horizontalArrangement = Arrangement.spacedBy(2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             items(results, key = { it.photoId }) { r -> Thumb(r.photoId, Modifier.clickable { open = r }) }
         }
     }
-    open?.let { r -> PhotoDetail(state, r.photoId, r.why) { open = null } }
+    open?.let { r ->
+        PhotoDetail(state, r.photoId, r.why,
+            onSteps = { open = null; journey = query.trim() to r.photoId },
+            onInside = { open = null; inside = r.photoId }) { open = null }
+    }
+    journey?.let { (q, focus) -> JourneyScreen(ready, q, focus) { journey = null } }
+    inside?.let { id -> PhotoInsideScreen(ready, id) { inside = null } }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PhotoDetail(state: AppState, photoId: Long, why: List<String>, onClose: () -> Unit) {
+fun PhotoDetail(state: AppState, photoId: Long, why: List<String>, onSteps: (() -> Unit)? = null, onInside: (() -> Unit)? = null, onClose: () -> Unit) {
     var refresh by remember { mutableStateOf(0) }
     val info by produceState<Pair<String?, List<Triple<Long, String, Boolean>>>?>(null, photoId, refresh) {
         value = withContext(Dispatchers.IO) {
@@ -115,7 +124,9 @@ fun PhotoDetail(state: AppState, photoId: Long, why: List<String>, onClose: () -
                 if (why.isNotEmpty()) {
                     Text("Why it matched", style = MaterialTheme.typography.titleSmall)
                     why.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+                    onSteps?.let { TextButton(it) { Text("⚗ Show the steps for this photo ›") } }
                 }
+                onInside?.let { TextButton(it) { Text("⚗ See inside this photo (pixels → numbers → index) ›") } }
                 info?.let { (text, labels) ->
                     if (labels.isNotEmpty()) {
                         Text("Labels (tap to tag)", style = MaterialTheme.typography.titleSmall)

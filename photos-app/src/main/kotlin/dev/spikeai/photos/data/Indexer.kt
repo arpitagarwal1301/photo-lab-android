@@ -40,7 +40,6 @@ class Indexer(
 
     private val _progress = MutableStateFlow(Progress("Waiting", 0, 0, 0.0))
     val progress: StateFlow<Progress> = _progress
-    private val chunker = Chunker(maxWords = 40, overlapWords = 10)
 
     /** CLIP decides which photos probably contain text, so OCR starts with screenshots, receipts, documents. */
     private val textPrompts by lazy { listOf("a screenshot of a phone", "a photo of a document", "a receipt", "a page of text", "a sign with writing").map(clip::embedText) }
@@ -83,6 +82,7 @@ class Indexer(
 
         val queue = store.ocrQueue()
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        val chunker = Chunker(engine.knobs.chunkWords, engine.knobs.chunkOverlap) // Lab knobs
         val t1 = System.nanoTime()
         queue.forEachIndexed { i, id ->
             coroutineContext.ensureActive()

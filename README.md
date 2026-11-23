@@ -4,6 +4,10 @@
 
 Type *"beach at sunset"*, *"wifi password"* or *"INV-2291"* and the matching photos come up in about 40 ms. Nothing is uploaded: every neural network runs on the phone.
 
+![One search, step by step: typing, word pieces, vectors, nearest photos, three signals, fusion, results](docs/journey.gif)
+
+*One real search on a small drawn demo gallery: every number in the animation comes from the same models the app uses ([how it's made](scripts/journey-gif)).*
+
 The project is also meant to be learned from. The AI parts most apps hide inside a library are written out in plain Kotlin here: tokenizers, a transformer, a vector index, keyword search, a training loop. Each one is tested against the official Python implementation.
 
 ---
@@ -100,11 +104,17 @@ scripts/install-phone.sh
 ./gradlew :embed-core:test :search-core:test
 ```
 
-## Inside the app
+## Inside the app: a learning tool
 
 - **Search** — type, see results, tap a photo to see why it matched and the text found in it.
-- **Labels** — create a label, tag photos, watch the training loss drop.
-- **Lab** — switch the vector index between HNSW and brute force, turn the `ef` accuracy knob and measure it on your own photos, and compare our hand-written MiniLM against ONNX Runtime on any two phrases.
+- **How did this search work?** — replays your search as 7 animated steps with the real numbers: the word pieces and their ids, the two vectors as barcodes, the HNSW graph hops, each signal's scores against its bar, the fusion sum, and the results.
+- **See inside this photo** — the 256×256 square the network actually saw, its 512 numbers, what CLIP thinks it is, the text OCR read, how that text was cut into overlapping chunks, and where the photo sits in the index.
+- **Lab knobs** — every number the app uses is a slider or switch with a one-line explanation:
+  - search: signals on/off, the other-guesses check, thresholds, fusion k, BM25 k1/b, HNSW ef. A live preview re-runs a search and says what moved.
+  - index: HNSW links and build effort, chunk size and overlap, then Rebuild.
+  - training: epochs, learning rate, L2 pull, minimum tags.
+- **Labels → ▶ Watch it train** — the loss curve draws itself while the top photos re-order, pass by pass, as the one-layer model learns from your tags.
+- **Lab** also measures HNSW accuracy on your own photos and compares our hand-written MiniLM with ONNX Runtime on any two phrases.
 
 ## Where things live
 
@@ -115,6 +125,7 @@ scripts/install-phone.sh
 | [`photos-app/`](photos-app) | The Android app: indexer, SQLite store, hybrid search, labels, Lab screen |
 | [`bench/`](bench) | The COCO benchmark that produces `results/m1-benchmark.md` |
 | [`results/`](results) | Measured numbers, laptop and phone |
+| [`scripts/journey-gif/`](scripts/journey-gif) | Draws the demo gallery and renders the animation above with the real models |
 | [`spikes/`](spikes), [`guard-core/`](guard-core), [`fixtures-shop/`](fixtures-shop), [`docs/`](docs) | Earlier experiments that led here (an on-phone screen agent, a build-time UI checker) |
 
 A good reading order: `WordPieceTokenizer.kt` → `Embedder.kt` → `VectorMath.kt` → `MiniLmKotlin.kt` → `Hnsw.kt` → `Bm25.kt` → `SearchEngine.kt`.

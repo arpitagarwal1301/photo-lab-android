@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import dev.spikeai.embed.ClipEncoder
 import dev.spikeai.embed.Embedder
 import dev.spikeai.photos.data.Indexer
+import dev.spikeai.photos.data.Knobs
 import dev.spikeai.photos.data.Labels
 import dev.spikeai.photos.data.Models
 import dev.spikeai.photos.data.PhotoStore
@@ -19,6 +20,7 @@ class AppState(context: Context) {
     val app: Context = context.applicationContext
     val models = Models(app)
     val store = PhotoStore(app)
+    val knobs = Knobs(app)
 
     class Ready(
         val clip: ClipEncoder,
@@ -38,8 +40,8 @@ class AppState(context: Context) {
             val t0 = System.currentTimeMillis()
             val clip = models.loadClip()
             val minilm = models.loadMiniLm()
-            val engine = SearchEngine(store, clip, minilm).apply { reload(); warmUp() }
-            Ready(clip, minilm, engine, Indexer(app, store, clip, minilm, engine), Labels(store, engine, clip), System.currentTimeMillis() - t0)
+            val engine = SearchEngine(store, clip, minilm, knobs).apply { reload(); warmUp() }
+            Ready(clip, minilm, engine, Indexer(app, store, clip, minilm, engine), Labels(store, engine, clip, knobs), System.currentTimeMillis() - t0)
         }.onSuccess { ready = it }.onFailure { loadError = it.toString() }
     }
 }

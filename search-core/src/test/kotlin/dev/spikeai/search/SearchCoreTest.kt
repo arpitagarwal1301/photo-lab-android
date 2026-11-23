@@ -37,6 +37,25 @@ class SearchCoreTest {
         assertTrue("recall $recallAt200", recallAt200 > 0.95)
     }
 
+    @Test fun tracedHnswReturnsTheSameHits() {
+        val data = clustered(2000)
+        val hnsw = Hnsw(); data.forEachIndexed { i, v -> hnsw.add(i, v) }
+        for (q in clustered(20, rnd = Random(5))) {
+            val trace = HnswTrace()
+            assertEquals(hnsw.search(q, 10).map { it.id }, hnsw.search(q, 10, trace).map { it.id })
+            assertTrue("hops recorded", trace.hops.isNotEmpty())
+            assertTrue("compared ${trace.compared} of ${data.size}", trace.compared in 1 until data.size)
+        }
+    }
+
+    @Test fun bm25ExplainAddsUpToTheScore() {
+        val bm = Bm25()
+        bm.add(0, "wifi password for the office network"); bm.add(1, "office lunch menu"); bm.add(2, "home wifi wifi router")
+        for (hit in bm.search("office wifi password", 10)) {
+            assertEquals(hit.score.toDouble(), bm.explain("office wifi password", hit.id).sumOf { it.part }, 1e-5)
+        }
+    }
+
     @Test fun bm25PrefersRareExactWords() {
         val bm = Bm25()
         bm.add(1, "Invoice INV-2291 total 1299")

@@ -12,7 +12,10 @@ import kotlin.math.ln
  *   tf:  repeating a word helps, but with diminishing returns (k1)
  *   b:   long documents don't win just by being long
  */
-class Bm25(private val k1: Double = 1.2, private val b: Double = 0.75) {
+class Bm25(var k1: Double = 1.2, var b: Double = 0.75) {
+    /** One query word's share of one document's score. */
+    class Term(val word: String, val docsWithIt: Int, val idf: Double, val tf: Int, val part: Double)
+
     private val postings = HashMap<String, HashMap<Int, Int>>() // word → (doc → count)
     private val docLength = HashMap<Int, Int>()
 
@@ -26,18 +29,28 @@ class Bm25(private val k1: Double = 1.2, private val b: Double = 0.75) {
 
     fun search(query: String, k: Int): List<Hit> {
         if (docLength.isEmpty()) return emptyList()
-        val n = docLength.size.toDouble()
-        val avg = docLength.values.average()
         val scores = HashMap<Int, Double>()
         for (w in tokenize(query).toSet()) {
             val docs = postings[w] ?: continue
-            val idf = ln(1 + (n - docs.size + 0.5) / (docs.size + 0.5))
-            for ((doc, tf) in docs) {
-                val norm = tf * (k1 + 1) / (tf + k1 * (1 - b + b * docLength.getValue(doc) / avg))
-                scores.merge(doc, idf * norm, Double::plus)
-            }
+            for ((doc, tf) in docs) scores.merge(doc, part(w, docs.size, tf, doc), Double::plus)
         }
         return scores.entries.sortedByDescending { it.value }.take(k).map { Hit(it.key, it.value.toFloat()) }
+    }
+
+    /** Why [doc] scored what it did: one row per query word (words not in the doc have part 0). */
+    fun explain(query: String, doc: Int): List<Term> = tokenize(query).distinct().map { w ->
+        val docs = postings[w]
+        val tf = docs?.get(doc) ?: 0
+        val n = docs?.size ?: 0
+        Term(w, n, idf(n), tf, if (tf == 0 || docs == null) 0.0 else part(w, n, tf, doc))
+    }
+
+    private fun idf(docsWithWord: Int): Double { val n = docLength.size.toDouble(); return ln(1 + (n - docsWithWord + 0.5) / (docsWithWord + 0.5)) }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun part(word: String, docsWithWord: Int, tf: Int, doc: Int): Double {
+        val avg = docLength.values.average()
+        return idf(docsWithWord) * tf * (k1 + 1) / (tf + k1 * (1 - b + b * docLength.getValue(doc) / avg))
     }
 
     companion object {

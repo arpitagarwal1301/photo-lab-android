@@ -28,7 +28,10 @@ class LinearProbe(val dim: Int, init: FloatArray? = null) {
     fun probability(x: FloatArray) = sigmoid(dot(w, x) * SCALE + b)
 
     /** [positives]/[negatives] are length-1 CLIP image vectors. */
-    fun train(positives: List<FloatArray>, negatives: List<FloatArray>, epochs: Int = 30, lr: Float = 0.003f, l2: Float = 1f, seed: Long = 1) {
+    fun train(
+        positives: List<FloatArray>, negatives: List<FloatArray>, epochs: Int = 30, lr: Float = 0.003f, l2: Float = 1f, seed: Long = 1,
+        onEpoch: ((epoch: Int, loss: Float) -> Unit)? = null, // lets the app replay training pass by pass
+    ) {
         // l2 pulls w back towards the starting point (the label's text vector), not towards zero:
         // a few examples should adjust the meaning of "dog", not replace it.
         val data = positives.map { it to 1f } + negatives.map { it to 0f }
@@ -58,6 +61,7 @@ class LinearProbe(val dim: Int, init: FloatArray? = null) {
                 b -= lr * (mB / c1) / (sqrt(vB / c2) + 1e-8f)
             }
             lossHistory += total / data.size
+            onEpoch?.invoke(lossHistory.size, lossHistory.last())
         }
     }
 
