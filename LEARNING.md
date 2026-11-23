@@ -13,7 +13,7 @@ One section per lesson: what the concept is, where it lives in the code, what I 
 | Text → word-pieces → ids | `embed-core/.../WordPieceTokenizer.kt` |
 | Ids → MiniLM (ONNX Runtime) → one vector per token | `embed-core/.../Embedder.kt` |
 | Average tokens → one vector, scale to length 1, dot product | `embed-core/.../VectorMath.kt` |
-| Lab screen | `photos-app/.../LessonOneScreen.kt` |
+| Lab screen | `photos-app/.../ui/LabScreen.kt` |
 
 **What happens to "blue round glasses" (real values)**
 
