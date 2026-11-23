@@ -38,7 +38,7 @@ class AppState(context: Context) {
             val t0 = System.currentTimeMillis()
             val clip = models.loadClip()
             val minilm = models.loadMiniLm()
-            val engine = SearchEngine(store, clip, minilm).apply { reload() }
+            val engine = SearchEngine(store, clip, minilm).apply { reload(); warmUp() }
             Ready(clip, minilm, engine, Indexer(app, store, clip, minilm, engine), Labels(store, engine, clip), System.currentTimeMillis() - t0)
         }.onSuccess { ready = it }.onFailure { loadError = it.toString() }
     }

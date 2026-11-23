@@ -74,13 +74,15 @@ class SearchEngine(private val store: PhotoStore, private val clip: ClipEncoder,
         val qClip = clip.embedText(query)
         val t1 = System.nanoTime()
         val qText = minilm.embed(query).vector
+        // Skip guesses that mean the same as the query ("an animal" when searching "a dog").
+        val others = otherGuesses.filter { (_, v) -> dot(qClip, v) < SAME_AS_QUERY }
         val t2 = System.nanoTime()
         synchronized(lock) {
-            // Nearest photos always exist, even for "update" when no photo is about updates. A real match stands
-            // out from the rest of the gallery; an unrelated query scores everything about the same.
-            val typical = typicalScore(qClip)
+            // Nearest photos always exist, even for "update" when no photo is about updates. So for each candidate ask
+            // "what else could this photo be?": keep it only if the query describes it better than every other guess.
             val closest = photoIndex.search(qClip, 100)
-            val byLook = closest.filter { it.score >= typical + CLIP_MARGIN }
+            val rival = closest.associate { it.id to bestOtherGuess(photoVecs[it.id], others) }
+            val byLook = closest.filter { it.score > rival.getValue(it.id).second }
             // Nearest chunks always exist, even when unrelated — keep only clearly similar text.
             val byMeaning = chunkIndex.search(qText, 100).filter { it.score > MIN_TEXT_SIMILARITY }
                 .map { Hit(chunkPhoto[it.id], it.score) to chunkText[it.id] }
@@ -96,11 +98,11 @@ class SearchEngine(private val store: PhotoStore, private val clip: ClipEncoder,
             val words = byWords.map { it.id }.toSet()
             lastTiming = Timing((t1 - t0) / 1e6, (t2 - t1) / 1e6, (t3 - t2) / 1e6, (t4 - t3) / 1e6, (t4 - t0) / 1e6)
             android.util.Log.i("PhotoLab", "search '%s': %.1f ms (CLIP text %.1f, MiniLM %.1f, vector index %.2f, BM25 %.2f), %d results".format(query, lastTiming!!.total, lastTiming!!.clipMs, lastTiming!!.miniLmMs, lastTiming!!.indexMs, lastTiming!!.bm25Ms, fused.size))
-            android.util.Log.i("PhotoLab", "  look: typical %.3f, best %.3f, %d above the bar%s".format(typical, closest.firstOrNull()?.score ?: 0f, byLook.size, if (weak) " → WEAK, showing closest" else ""))
+            android.util.Log.i("PhotoLab", "  look: %d of %d candidates beat the other guesses%s; best %s".format(byLook.size, closest.size, if (weak) " → WEAK, showing closest" else "", closest.firstOrNull()?.let { "%.3f vs '%s' %.3f".format(it.score, rival.getValue(it.id).first, rival.getValue(it.id).second) }))
             android.util.Log.i("PhotoLab", "  look top3=" + byLook.take(3).map { photoIds[it.id] } + " meaning top3=" + byMeaning.take(3).map { photoIds[it.first.id] to "%.2f".format(it.first.score) } + " words top3=" + byWords.take(3).map { photoIds[it.id] to "%.2f".format(it.score) } + " fused top3=" + fused.take(3).map { photoIds[it.id] to "%.4f".format(it.score) })
             return Answer(fused.map { h ->
                 Result(photoIds[h.id], h.score, buildList {
-                    val look = lookScore[h.id]?.let { "%.2f vs typical %.2f".format(it, typical) }
+                    val look = lookScore[h.id]?.let { s -> rival[h.id]?.let { (name, r) -> "%.2f; next best guess “%s” %.2f".format(s, name, r) } }
                     lookRank[h.id]?.let { add("looks like it (#$it, $look)") }
                     if (weak && look != null) add("closest look, but weak ($look)")
                     meaning[h.id]?.let { add("text means it: “${it.take(60)}”") }
@@ -110,13 +112,15 @@ class SearchEngine(private val store: PhotoStore, private val clip: ClipEncoder,
         }
     }
 
-    /** Median similarity of the query to the gallery (sampled for big galleries): the "background" score. */
-    private fun typicalScore(q: FloatArray): Float {
-        if (photoVecs.isEmpty()) return 0f
-        val step = (photoVecs.size / 1000).coerceAtLeast(1)
-        val s = (photoVecs.indices step step).map { i -> var d = 0f; val v = photoVecs[i]; for (k in q.indices) d += q[k] * v[k]; d }.sorted()
-        return s[s.size / 2]
-    }
+    /** The generic description that fits this photo best, and its score. */
+    private fun bestOtherGuess(photo: FloatArray, others: List<Pair<String, FloatArray>>): Pair<String, Float> =
+        others.map { (name, v) -> name to dot(photo, v) }.maxByOrNull { it.second } ?: ("" to -1f)
+
+    private fun dot(a: FloatArray, b: FloatArray): Float { var d = 0f; for (k in a.indices) d += a[k] * b[k]; return d }
+
+    /** The other guesses, encoded once (18 × CLIP text ≈ 0.5 s on the phone). Call at start-up so the first search is fast. */
+    private val otherGuesses: List<Pair<String, FloatArray>> by lazy { OTHER_GUESSES.map { it to clip.embedText(it) } }
+    fun warmUp() { otherGuesses.size }
 
     /** Lab: how many of the true top 10 (brute force) does the index return, and how fast. */
     fun measureIndex(queries: List<String>): Triple<Double, Double, Double> {
@@ -137,11 +141,20 @@ class SearchEngine(private val store: PhotoStore, private val clip: ClipEncoder,
         /** MiniLM similarity below this is "vaguely the same topic" (0.35 let unrelated screenshots in on the phone). */
         const val MIN_TEXT_SIMILARITY = 0.45f
         /**
-         * A CLIP hit must beat the gallery's median score by this much. Calibrated on COCO: the right photo beats the
-         * median by 0.20 (median case), 0.14 (worst 10%), so 0.06 keeps 99% of real matches. On the phone, "update"
-         * reached only 0.026 above median (nothing matches) while "wifi password" reached 0.115.
+         * Generic descriptions a photo competes against. A photo counts as "looks like it" only if the query scores
+         * higher than all of these. Measured (COCO 1k + 51 phone photos):
+         *  - full captions: the right photo is kept 98% of the time
+         *  - short queries ("a dog", "pizza"): 3× fewer wrong photos than a "beat the gallery median" rule
+         *  - phone: "a dog" and "update" find nothing (correct); "eyeglasses" finds 37 (median rule found 0,
+         *    because most photos there are glasses and the median was already high)
          */
-        const val CLIP_MARGIN = 0.06f
+        val OTHER_GUESSES = listOf(
+            "a screenshot of a phone app", "a screenshot of a web page", "a screenshot of a chat", "a screenshot of a settings menu",
+            "a document with text", "a photo of a person", "a selfie", "a group of people", "a photo of food", "a room indoors",
+            "a city street", "a landscape", "a building", "a car", "an animal", "a product photo", "a blurry photo", "a photo of an object",
+        )
+        /** CLIP text similarity above which a guess means the same as the query and is skipped. */
+        const val SAME_AS_QUERY = 0.8f
     }
 
     fun indexStats(): String = synchronized(lock) { (photoIndex as? Hnsw)?.stats() ?: "brute force" }
