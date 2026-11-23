@@ -135,7 +135,7 @@ Photos, the text read from them and their vectors stay on the phone. The network
 
 ## Credits and licences
 
-Model weights are not in this repo and come with their own licences:
+The code in this repo is under the [MIT licence](LICENSE). Model weights are not in this repo and come with their own licences:
 - [MobileCLIP](https://github.com/apple/ml-mobileclip) by Apple — Apple ML research licence (ONNX export by [Xenova](https://huggingface.co/Xenova/mobileclip_s0))
 - [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) — Apache-2.0
 - [ML Kit text recognition](https://developers.google.com/ml-kit/vision/text-recognition/v2) by Google
